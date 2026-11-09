@@ -14,9 +14,9 @@ export interface StructuredResponse {
 }
 
 /**
- * Abstraction autour du fournisseur de LLM.
- * Le reste de l'application ne dépend que de cette classe, ce qui permet
- * de la remplacer par un faux client dans les tests.
+ * Abstraction over the LLM provider.
+ * The rest of the application only depends on this class, so it can be
+ * replaced by a fake client in tests.
  */
 export abstract class LlmClient {
   abstract extractStructured(req: StructuredRequest): Promise<StructuredResponse>;
@@ -30,9 +30,13 @@ export class AnthropicLlmClient extends LlmClient {
 
   constructor() {
     super();
-    // La clé est lue depuis ANTHROPIC_API_KEY : jamais dans le code.
-    this.client = new Anthropic({ maxRetries: 2, timeout: 60_000 });
-    this.model = process.env.ANTHROPIC_MODEL ?? 'claude-haiku-5-5';
+    // The key is read from LLM_API_KEY: never hard-coded.
+    const apiKey = process.env.LLM_API_KEY;
+    if (!apiKey) {
+      throw new Error('LLM_API_KEY is missing. For Claude, create a key at https://platform.claude.com');
+    }
+    this.client = new Anthropic({ apiKey, maxRetries: 2, timeout: 60_000 });
+    this.model = process.env.LLM_MODEL || 'claude-haiku-5-5';
   }
 
   async extractStructured(req: StructuredRequest): Promise<StructuredResponse> {
@@ -47,7 +51,7 @@ export class AnthropicLlmClient extends LlmClient {
           input_schema: req.tool.inputSchema as Anthropic.Tool.InputSchema,
         },
       ],
-      // On force l'appel de l'outil : la réponse est forcément un objet structuré.
+      // Force the tool call: the response is always a structured object.
       tool_choice: { type: 'tool', name: req.tool.name, disable_parallel_tool_use: true },
       messages: [
         {
@@ -60,14 +64,14 @@ export class AnthropicLlmClient extends LlmClient {
       ],
     });
 
-    // On ne journalise que des métadonnées, jamais le contenu du CV (données personnelles).
+    // Only log metadata, never the resume content (personal data).
     this.logger.log(
       `model=${response.model} in=${response.usage.input_tokens} out=${response.usage.output_tokens} stop=${response.stop_reason}`,
     );
 
     const toolUse = response.content.find((block) => block.type === 'tool_use');
     if (!toolUse || toolUse.type !== 'tool_use') {
-      throw new Error('Le modèle n’a pas renvoyé de résultat structuré');
+      throw new Error('The model did not return a structured result');
     }
     return { input: toolUse.input, model: response.model };
   }

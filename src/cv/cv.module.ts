@@ -5,9 +5,10 @@ import { CvController } from './cv.controller';
 import { CvService } from './cv.service';
 
 /**
- * Choix du fournisseur LLM via la variable d'environnement LLM_PROVIDER :
- *   - gemini    → Gemini (gratuit via AI Studio, GEMINI_API_KEY)
- *   - anthropic → Claude (payant, ANTHROPIC_API_KEY)
+ * Picks the LLM provider from the LLM_PROVIDER environment variable:
+ *   - gemini    → Gemini (free tier via AI Studio)
+ *   - anthropic → Claude (paid)
+ * Every provider reads the same variables: LLM_API_KEY and LLM_MODEL (optional).
  */
 function createLlmClient(): LlmClient {
   const provider = process.env.LLM_PROVIDER ?? 'gemini';
@@ -17,7 +18,7 @@ function createLlmClient(): LlmClient {
     case 'anthropic':
       return new AnthropicLlmClient();
     default:
-      throw new Error(`LLM_PROVIDER inconnu : "${provider}" (valeurs possibles : gemini, anthropic)`);
+      throw new Error(`Unknown LLM_PROVIDER: "${provider}" (allowed values: gemini, anthropic)`);
   }
 }
 

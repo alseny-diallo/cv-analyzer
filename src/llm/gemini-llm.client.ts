@@ -3,18 +3,18 @@ import { Injectable, Logger } from '@nestjs/common';
 import { LlmClient, StructuredRequest, StructuredResponse } from './llm.client';
 
 /**
- * Client LLM qui utilise l'API Gemini de Google (offre gratuite via Google AI Studio).
+ * LLM client for Google's Gemini API (free tier via Google AI Studio).
  *
- * Prérequis :
- *   1. Créer une clé gratuite sur https://aistudio.google.com/apikey
- *   2. Ajouter dans .env :  GEMINI_API_KEY=ta-clé
+ * Prerequisites:
+ *   1. Create a free key at https://aistudio.google.com/apikey
+ *   2. In .env:  LLM_PROVIDER=gemini and LLM_API_KEY=your-key
  *
- * Comme Claude, Gemini lit le PDF directement. Le JSON Schema est passé dans
- * `responseJsonSchema` : Gemini est alors contraint de produire un JSON conforme.
+ * Like Claude, Gemini reads the PDF directly. The JSON Schema is passed in
+ * `responseJsonSchema`, which constrains Gemini to produce matching JSON.
  *
- * Attention : sur l'offre gratuite, Google peut utiliser les contenus envoyés pour améliorer
- * ses produits, et des humains peuvent les lire (hors EEE, Suisse et Royaume-Uni).
- * Ne pas y envoyer de vrais CV de candidats.
+ * Warning: on the free tier, Google may use submitted content to improve its products,
+ * and humans may read it (outside the EEA, Switzerland and the UK).
+ * Do not send real candidates' resumes.
  */
 @Injectable()
 export class GeminiLlmClient extends LlmClient {
@@ -24,13 +24,13 @@ export class GeminiLlmClient extends LlmClient {
 
   constructor() {
     super();
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = process.env.LLM_API_KEY;
     if (!apiKey) {
-      throw new Error('GEMINI_API_KEY manquante. Crée une clé gratuite sur https://aistudio.google.com/apikey');
+      throw new Error('LLM_API_KEY is missing. For Gemini, create a free key at https://aistudio.google.com/apikey');
     }
-    // Délai max de 60 s par tentative, et 3 tentatives au total (erreurs réseau, 429, 5xx).
+    // 60 s timeout per attempt, and 3 attempts in total (network errors, 429, 5xx).
     this.ai = new GoogleGenAI({ apiKey, httpOptions: { timeout: 60_000, retryOptions: { attempts: 3 } } });
-    this.model = process.env.GEMINI_MODEL ?? 'gemini-3.5-flash-lite';
+    this.model = process.env.LLM_MODEL || 'gemini-3.5-flash-lite';
   }
 
   async extractStructured(req: StructuredRequest): Promise<StructuredResponse> {
@@ -51,24 +51,24 @@ export class GeminiLlmClient extends LlmClient {
 
     const finishReason = response.candidates?.[0]?.finishReason;
     const usage = response.usageMetadata;
-    // On ne journalise que des métadonnées, jamais le contenu du CV (données personnelles).
+    // Only log metadata, never the resume content (personal data).
     this.logger.log(
       `model=${response.modelVersion ?? this.model} in=${usage?.promptTokenCount} out=${usage?.candidatesTokenCount} ` +
         `thinking=${usage?.thoughtsTokenCount ?? 0} stop=${finishReason}`,
     );
 
-    // MAX_TOKENS = JSON coupé en plein milieu ; SAFETY, RECITATION… = réponse bloquée par Google.
+    // MAX_TOKENS = JSON cut off mid-way; SAFETY, RECITATION… = response blocked by Google.
     if (finishReason !== FinishReason.STOP) {
-      throw new Error(`Réponse Gemini incomplète ou bloquée (finishReason=${finishReason})`);
+      throw new Error(`Gemini response incomplete or blocked (finishReason=${finishReason})`);
     }
     const text = response.text;
     if (!text) {
-      throw new Error("Gemini n'a pas renvoyé de contenu");
+      throw new Error('Gemini returned no content');
     }
     try {
       return { input: JSON.parse(text), model: response.modelVersion ?? this.model };
     } catch {
-      throw new Error("Gemini n'a pas renvoyé de JSON valide");
+      throw new Error('Gemini did not return valid JSON');
     }
   }
 }

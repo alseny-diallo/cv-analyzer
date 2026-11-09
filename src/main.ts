@@ -7,6 +7,6 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const port = Number(process.env.PORT ?? 3043);
   await app.listen(port);
-  Logger.log(`cv-analyzer écoute sur http://localhost:${port}`, 'Bootstrap');
+  Logger.log(`cv-analyzer listening on http://localhost:${port}`, 'Bootstrap');
 }
 bootstrap();

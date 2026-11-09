@@ -43,7 +43,7 @@ Prérequis :
 nvm use
 corepack enable
 yarn install
-cp .env.example .env        # puis renseigner GEMINI_API_KEY
+cp .env.example .env        # puis renseigner LLM_API_KEY
 yarn start:dev
 ```
 

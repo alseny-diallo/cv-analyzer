@@ -2,7 +2,7 @@ import { validAnalysis } from '../../test/fixtures';
 import { GeminiLlmClient } from './gemini-llm.client';
 import { StructuredRequest } from './llm.client';
 
-// On remplace le SDK : les tests n'appellent jamais Google.
+// Replace the SDK: tests never call Google.
 const generateContent = jest.fn();
 jest.mock('@google/genai', () => ({
   GoogleGenAI: jest.fn(() => ({ models: { generateContent } })),
@@ -12,7 +12,7 @@ jest.mock('@google/genai', () => ({
 const request: StructuredRequest = {
   system: 'SYSTEM',
   pdfBase64: Buffer.from('%PDF-1.4 cv').toString('base64'),
-  instruction: 'Analyse ce CV.',
+  instruction: 'Analyze this resume.',
   tool: { name: 'save_cv_analysis', description: 'desc', inputSchema: { type: 'object', properties: {} } },
 };
 
@@ -26,16 +26,16 @@ const geminiReply = (text: string | undefined, finishReason = 'STOP') => ({
 describe('GeminiLlmClient', () => {
   beforeEach(() => {
     generateContent.mockReset();
-    process.env.GEMINI_API_KEY = 'cle-de-test';
+    process.env.LLM_API_KEY = 'test-key';
   });
-  afterEach(() => delete process.env.GEMINI_API_KEY);
+  afterEach(() => delete process.env.LLM_API_KEY);
 
-  it('refuse de démarrer sans GEMINI_API_KEY', () => {
-    delete process.env.GEMINI_API_KEY;
-    expect(() => new GeminiLlmClient()).toThrow('GEMINI_API_KEY manquante');
+  it('refuses to start without LLM_API_KEY', () => {
+    delete process.env.LLM_API_KEY;
+    expect(() => new GeminiLlmClient()).toThrow('LLM_API_KEY is missing');
   });
 
-  it('envoie le PDF et le schéma, puis renvoie le JSON du modèle', async () => {
+  it('sends the PDF and the schema, then returns the model JSON', async () => {
     generateContent.mockResolvedValue(geminiReply(JSON.stringify(validAnalysis())));
 
     const result = await new GeminiLlmClient().extractStructured(request);
@@ -47,13 +47,13 @@ describe('GeminiLlmClient', () => {
     expect(params.config.systemInstruction).toBe('SYSTEM');
   });
 
-  it('rejette une réponse coupée par la limite de tokens', async () => {
+  it('rejects a response cut off by the token limit', async () => {
     generateContent.mockResolvedValue(geminiReply('{"fullName": "Aw', 'MAX_TOKENS'));
     await expect(new GeminiLlmClient().extractStructured(request)).rejects.toThrow('MAX_TOKENS');
   });
 
-  it('rejette une réponse qui n’est pas du JSON', async () => {
-    generateContent.mockResolvedValue(geminiReply('Voici le résultat : ...'));
-    await expect(new GeminiLlmClient().extractStructured(request)).rejects.toThrow('JSON valide');
+  it('rejects a response that is not JSON', async () => {
+    generateContent.mockResolvedValue(geminiReply('Here is the result: ...'));
+    await expect(new GeminiLlmClient().extractStructured(request)).rejects.toThrow('valid JSON');
   });
 });

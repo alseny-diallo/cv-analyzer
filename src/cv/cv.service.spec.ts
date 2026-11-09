@@ -18,7 +18,7 @@ const pdf = Buffer.from('%PDF-1.4 fake');
 const ok = (input: unknown) => async () => ({ input, model: 'test-model' });
 
 describe('CvService', () => {
-  it('renvoie une analyse validée sans relecture quand tout est clair', async () => {
+  it('returns a validated analysis without review when everything is clear', async () => {
     const service = new CvService(new FakeLlm(ok(validAnalysis())));
     const result = await service.analyze(pdf);
 
@@ -27,7 +27,7 @@ describe('CvService', () => {
     expect(result.model).toBe('test-model');
   });
 
-  it("envoie le PDF en base64 et un schéma d'outil sans $schema", async () => {
+  it('sends the PDF as base64 and a tool schema without $schema', async () => {
     const llm = new FakeLlm(ok(validAnalysis()));
     await new CvService(llm).analyze(pdf);
 
@@ -36,32 +36,32 @@ describe('CvService', () => {
     expect(llm.lastRequest?.tool.inputSchema).not.toHaveProperty('$schema');
   });
 
-  it('rejette une sortie du modèle qui ne respecte pas le schéma', async () => {
+  it('rejects model output that does not match the schema', async () => {
     const service = new CvService(new FakeLlm(ok({ fullName: 42 })));
     await expect(service.analyze(pdf)).rejects.toBeInstanceOf(BadGatewayException);
   });
 
-  it("transforme une erreur de l'API en 502 sans exposer le détail", async () => {
+  it('turns an API error into a 502 without exposing the details', async () => {
     const service = new CvService(
       new FakeLlm(async () => {
         throw new Error('401 invalid x-api-key');
       }),
     );
-    await expect(service.analyze(pdf)).rejects.toThrow("Le service d'analyse est indisponible");
+    await expect(service.analyze(pdf)).rejects.toThrow('The analysis service is unavailable');
   });
 
-  it('demande une relecture humaine si la confiance est faible ou si le modèle signale un problème', async () => {
+  it('requires human review when confidence is low or the model reports an issue', async () => {
     const service = new CvService(
-      new FakeLlm(ok(validAnalysis({ confidence: 0.4, warnings: ['Instructions suspectes dans le document'] }))),
+      new FakeLlm(ok(validAnalysis({ confidence: 0.4, warnings: ['Suspicious instructions in the document'] }))),
     );
     const result = await service.analyze(pdf);
 
     expect(result.needsHumanReview).toBe(true);
-    expect(result.reviewReasons.join(' ')).toContain('Confiance faible');
-    expect(result.reviewReasons.join(' ')).toContain('Instructions suspectes');
+    expect(result.reviewReasons.join(' ')).toContain('Low confidence');
+    expect(result.reviewReasons.join(' ')).toContain('Suspicious instructions');
   });
 
-  it("ignore un jobMatch renvoyé alors qu'aucune offre n'a été fournie", async () => {
+  it('ignores a jobMatch returned when no job description was provided', async () => {
     const service = new CvService(
       new FakeLlm(ok(validAnalysis({ jobMatch: { score: 100, strengths: [], gaps: [] } }))),
     );
@@ -69,13 +69,13 @@ describe('CvService', () => {
     expect(result.analysis.jobMatch).toBeNull();
   });
 
-  it("fait relire un score d'adéquation extrême", async () => {
+  it('requires review of an extreme match score', async () => {
     const service = new CvService(
       new FakeLlm(ok(validAnalysis({ jobMatch: { score: 95, strengths: ['NestJS'], gaps: [] } }))),
     );
-    const result = await service.analyze(pdf, 'Développeur NestJS');
+    const result = await service.analyze(pdf, 'NestJS developer');
 
     expect(result.needsHumanReview).toBe(true);
-    expect(result.reviewReasons.join(' ')).toContain('Score');
+    expect(result.reviewReasons.join(' ')).toContain('match score');
   });
 });

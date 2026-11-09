@@ -1,7 +1,7 @@
 {
   "name": "cv-analyzer",
   "version": "1.0.0",
-  "description": "API NestJS qui analyse un CV PDF avec Claude et renvoie des données structurées, avec garde-fous et validation humaine.",
+  "description": "NestJS API that analyzes a PDF resume with an LLM (Gemini or Claude) and returns structured data, with guardrails and human review.",
   "main": "dist/main.js",
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
