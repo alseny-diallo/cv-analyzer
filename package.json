@@ -1,0 +1,58 @@
+{
+  "name": "cv-analyzer",
+  "version": "1.0.0",
+  "description": "API NestJS qui analyse un CV PDF avec Claude et renvoie des données structurées, avec garde-fous et validation humaine.",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/main.js",
+    "start:dev": "ts-node src/main.ts",
+    "test": "jest"
+  },
+  "author": "Al Seny Diallo",
+  "license": "MIT",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.4.0",
+    "@google/genai": "2.32.0",
+    "@nestjs/common": "^11.2.8",
+    "@nestjs/config": "^4.0.4",
+    "@nestjs/core": "^11.2.8",
+    "@nestjs/platform-express": "^11.2.8",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@nestjs/testing": "^11.2.8",
+    "@types/express": "^5.0.6",
+    "@types/jest": "^30.0.0",
+    "@types/multer": "^2.3.0",
+    "@types/node": "^26.6.6",
+    "@types/supertest": "^7.2.1",
+    "jest": "^30.5.2",
+    "supertest": "^7.3.1",
+    "ts-jest": "^29.4.15",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  },
+  "jest": {
+    "moduleFileExtensions": [
+      "js",
+      "json",
+      "ts"
+    ],
+    "rootDir": ".",
+    "testRegex": ".*\\.spec\\.ts$",
+    "transform": {
+      "^.+\\.ts$": "ts-jest"
+    },
+    "testEnvironment": "node"
+  },
+  "packageManager": "yarn@4.18.1",
+  "engines": {
+    "node": "22.23.4"
+  },
+  "resolutions": {
+    "multer": "^2.5.0"
+  }
+}

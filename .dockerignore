@@ -1,0 +1,6 @@
+node_modules
+dist
+.env
+coverage
+.git
+.yarn/install-state.gz
